@@ -48,7 +48,7 @@ Our approach shows significant advantages over traditional correlation-based met
 Install directly from GitHub using pip:
 
 ```bash
-pip install git+https://github.com/kmaherx/bmlp.git
+pip install git+https://github.com/kmaherx/ScBMLP.git
 ```
 
 ### Virtual Environment Setup (Recommended)
@@ -58,7 +58,7 @@ For a clean installation, create a virtual environment first:
 ```bash
 python -m venv scbmlp-env
 source scbmlp-env/bin/activate  # on Windows: scbmlp-env\Scripts\activate
-pip install git+https://github.com/kmaherx/bmlp.git
+pip install git+https://github.com/kmaherx/ScBMLP.git
 ```
 
 ### Development Installation
@@ -66,8 +66,8 @@ pip install git+https://github.com/kmaherx/bmlp.git
 For development or if you want to modify the code:
 
 ```bash
-git clone https://github.com/kmaherx/bmlp.git
-cd bmlp
+git clone https://github.com/kmaherx/ScBMLP.git
+cd ScBMLP
 pip install -e ".[dev]"
 ```
 
@@ -76,7 +76,7 @@ pip install -e ".[dev]"
 If you prefer using `uv` for faster package management:
 
 ```bash
-uv pip install git+https://github.com/kmaherx/bmlp.git
+uv pip install git+https://github.com/kmaherx/ScBMLP.git
 ```
 
 ## 🧪 Quick Start
