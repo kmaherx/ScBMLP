@@ -54,7 +54,7 @@ pip install git+https://github.com/kmaherx/bmlp.git
 
 ```bash
 python -m venv bmlp-env
-source bmlp-env/bin/activate  # On Windows: bmlp-env\Scripts\activate
+source bmlp-env/bin/activate  # on Windows: bmlp-env\Scripts\activate
 pip install git+https://github.com/kmaherx/bmlp.git
 ```
 
@@ -85,7 +85,7 @@ adata, train_dataset, val_dataset, test_dataset = myeloid_dev_freq(
 cfg = Config(
     d_input=adata.n_vars,
     d_hidden=128,
-    d_output=5,  # Number of frequency components
+    d_output=5,  # number of frequency components
     n_epochs=500,
     lr=1e-4
 )
@@ -96,7 +96,7 @@ train_losses, val_losses = model.fit(train_dataset, val_dataset)
 # Extract interpretable gene modules
 import einops
 b = einops.einsum(model.w_p, model.w_l, model.w_r, "out hid, hid in1, hid in2 -> out in1 in2")
-b = 0.5 * (b + b.mT)  # Symmetrize
+b = 0.5 * (b + b.mT)  # symmetrize
 
 # Analyze gene modules at each frequency
 for freq_idx in range(5):
