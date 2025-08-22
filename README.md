@@ -44,53 +44,26 @@ Our approach shows significant advantages over traditional correlation-based met
 
 ### Quick Install (Recommended)
 
-Install directly from GitHub using pip:
+Install directly from GitHub:
 
 ```bash
-# Install the latest version
-pip install git+https://github.com/tdooms/bilinear-decomposition.git
-
-# Or install a specific branch/tag
-pip install git+https://github.com/tdooms/bilinear-decomposition.git@main
+pip install git+https://github.com/kmaherx/bmlp.git
 ```
 
 ### Virtual Environment (Recommended)
 
-For better dependency management, use a virtual environment:
-
 ```bash
-# Create and activate virtual environment
 python -m venv bmlp-env
 source bmlp-env/bin/activate  # On Windows: bmlp-env\Scripts\activate
-
-# Install from GitHub
-pip install git+https://github.com/tdooms/bilinear-decomposition.git
+pip install git+https://github.com/kmaherx/bmlp.git
 ```
 
 ### Development Installation
 
-For contributors who want to modify the code:
-
 ```bash
-# Clone and install in editable mode
-git clone https://github.com/tdooms/bilinear-decomposition.git
-cd bilinear-decomposition
+git clone https://github.com/kmaherx/bmlp.git
+cd bmlp
 pip install -e ".[dev]"
-```
-
-### Using Poetry (Alternative)
-
-If you prefer Poetry for dependency management:
-
-```bash
-# Install Poetry if not already installed
-curl -sSL https://install.python-poetry.org | python3 -
-
-# Clone and install
-git clone https://github.com/tdooms/bilinear-decomposition.git
-cd bilinear-decomposition
-poetry install
-poetry shell
 ```
 
 ## 🧪 Quick Start
@@ -163,8 +136,6 @@ This method has been validated on:
 
 1. **Trilinear MLPs**: `(Wx) ⊙ (Vx) ⊙ (Ux)` for ternary gene interactions
 2. **Disease Applications**: Finding disrupted regulatory modules in pathological states
-3. **Multi-modal Integration**: Combining with ATAC-seq, ChIP-seq data
-4. **Temporal Dynamics**: Modeling developmental trajectories
 
 ## 📈 Performance
 
@@ -174,45 +145,15 @@ This method has been validated on:
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our development setup:
+Development setup:
 
 ```bash
 # Install with development dependencies
-poetry install --with dev
+pip install -e ".[dev]"
 
 # Run tests
-poetry run pytest
+pytest
 
 # Format code
-poetry run black .
-
-# Type checking
-poetry run mypy .
+black .
 ```
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- **Paul et al. (2015)** for the myeloid development dataset
-- **Scanpy** ecosystem for single-cell analysis tools
-- **PyTorch** for the deep learning framework
-
-## 📚 Citation
-
-If you use this work in your research, please cite:
-
-```bibtex
-@software{bmlp2025,
-  title={Bilinear Multi-Layer Perceptrons for Hierarchical Single-Cell Analysis},
-  author={Kamal Maher and contributors},
-  year={2025},
-  url={https://github.com/tdooms/bilinear-decomposition}
-}
-```
-
----
-
-**Note**: This represents a fundamental advance in interpretable machine learning for single-cell biology, with genuine potential for high-impact publication in venues like *Nature Methods* or *Nature Biotechnology*.
