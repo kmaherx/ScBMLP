@@ -1,4 +1,4 @@
-# Bilinear Multi-Layer Perceptrons (BMLPs) for Hierarchical Single-Cell Analysis
+# ScBMLP: Bilinear Multi-Layer Perceptrons for Single-Cell Analysis
 
 A novel machine learning approach for discovering interpretable gene regulatory hierarchies in single-cell RNA-seq data through bilinear neural networks and graph Laplacian eigendecomposition.
 

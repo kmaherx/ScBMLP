@@ -3,7 +3,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "bmlp"
+name = "ScBMLP"
 version = "0.1.0"
 description = "Bilinear Multi-Layer Perceptrons for Hierarchical Single-Cell Analysis"
 readme = "README.md"
