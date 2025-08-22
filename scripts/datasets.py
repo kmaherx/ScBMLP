@@ -6,10 +6,28 @@ from torch.utils.data import Dataset
 import numpy as np
 import scanpy as sc
 import torch
+import scipy.sparse as sp
+
+
+def _to_sparse_tensor(X: np.ndarray, device: str) -> torch.Tensor:
+    """Convert dense/sparse matrix to sparse tensor."""
+    if sp.issparse(X):
+        X_csr = X.tocsr()
+        coo = X_csr.tocoo()
+        indices = torch.stack([
+            torch.from_numpy(coo.row).long(),
+            torch.from_numpy(coo.col).long(),
+        ])
+        values = torch.from_numpy(coo.data).float()
+        return torch.sparse_coo_tensor(indices, values, coo.shape, dtype=torch.float32).to(device)
+    else:
+        dense_tensor = torch.tensor(X, dtype=torch.float32)
+        return dense_tensor.to_sparse().to(device)
 
 
 class ClassDataset(Dataset):
     """PyTorch dataset for single-cell classification tasks."""
+    
     def __init__(
         self,
         adata: sc.AnnData,
@@ -18,18 +36,20 @@ class ClassDataset(Dataset):
         device: str = "cpu",
     ):
         self.adata = adata[indices].copy()
-        self.X = torch.tensor(self.adata.X, dtype=torch.float32).to(device)
+        self.X = _to_sparse_tensor(self.adata.X, device)
         self.y = torch.tensor(self.adata.obs[label].values.astype(int)).to(device)
 
     def __len__(self) -> int:
         return self.X.shape[0]
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.X[idx], self.y[idx]
+        x_row = self.X[idx].to_dense() if self.X.is_sparse else self.X[idx]
+        return x_row, self.y[idx]
 
 
 class FreqDataset(Dataset):
     """PyTorch dataset for single-cell frequency regression tasks."""
+    
     def __init__(
         self,
         adata: sc.AnnData,
@@ -38,14 +58,15 @@ class FreqDataset(Dataset):
         device: str = "cpu",
     ):
         self.adata = adata[indices].copy()
-        self.X = torch.tensor(self.adata.X, dtype=torch.float32).to(device)
+        self.X = _to_sparse_tensor(self.adata.X, device)
         self.y = torch.tensor(self.adata.obsm[freq_key], dtype=torch.float32).to(device)
 
     def __len__(self) -> int:
         return self.X.shape[0]
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.X[idx], self.y[idx]
+        x_row = self.X[idx].to_dense() if self.X.is_sparse else self.X[idx]
+        return x_row, self.y[idx]
 
 
 def get_split_idxs(
@@ -54,6 +75,7 @@ def get_split_idxs(
     random_state: int = 0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Split dataset indices into train/validation/test sets."""
+    np.random.seed(random_state)
     n = adata.shape[0]
     n_train = int(0.7 * n)
     n_val = int(val_split * n)
@@ -63,7 +85,6 @@ def get_split_idxs(
     train_indices = indices[:n_train]
     val_indices = indices[n_train:n_train + n_val]
     test_indices = indices[n_train + n_val:]
-
     return train_indices, val_indices, test_indices
 
 
@@ -75,11 +96,9 @@ def get_type_datasets(
     class_key: str,
     device: str = "cpu",
 ) -> Tuple[ClassDataset, ClassDataset, ClassDataset]:
-    """Create train/val/test datasets for cell type classification."""
     train_dataset = ClassDataset(adata, train_indices, class_key, device=device)
     val_dataset = ClassDataset(adata, val_indices, class_key, device=device)
     test_dataset = ClassDataset(adata, test_indices, class_key, device=device)
-
     return train_dataset, val_dataset, test_dataset
 
 
@@ -91,11 +110,9 @@ def get_freq_datasets(
     freq_key: str = "X_freq",
     device: str = "cpu",
 ) -> Tuple[FreqDataset, FreqDataset, FreqDataset]:
-    """Create train/val/test datasets for frequency regression."""
     train_dataset = FreqDataset(adata, train_indices, freq_key, device=device)
     val_dataset = FreqDataset(adata, val_indices, freq_key, device=device)
     test_dataset = FreqDataset(adata, test_indices, freq_key, device=device)
-
     return train_dataset, val_dataset, test_dataset
 
 
@@ -109,7 +126,7 @@ def simulate_classes(
     device: str = "cpu",
     class_key: str = "cell_type",
 ) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
-    """Generate simulated single-cell data with Gaussian blobs for classification."""
+    """Generate simulated single-cell data with Gaussian blobs."""
     adata = sc.datasets.blobs(
         n_observations=n_cells,
         n_variables=n_genes,
@@ -137,7 +154,7 @@ def myeloid_classes(
     device: str = "cpu",
     class_key: str = "cell_type",
 ) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
-    """Load and prepare Paul15 myeloid development data for cell type classification."""
+    """Paul15 myeloid development data for cell type classification."""
     adata = sc.datasets.paul15()
 
     sc.pp.normalize_total(adata)
@@ -164,11 +181,7 @@ def myeloid_freqs(
     device: str = "cpu",
     freq_key: str = "X_freq",
 ) -> Tuple[sc.AnnData, FreqDataset, FreqDataset, FreqDataset]:
-    """
-    Myeloid development dataset with Laplacian eigenvector-based frequency targets.
-    Each cell is represented by Laplacian eigenvectors on the k-NN graph, providing
-    a hierarchical frequency representation on the gene expression manifold.
-    """
+    """Myeloid development with Laplacian eigenvector frequency targets."""
     adata = sc.datasets.paul15()
 
     sc.pp.normalize_total(adata)
@@ -218,6 +231,7 @@ def census_classes(
                 "obs_column_names" : ["cell_type", "sex", "assay", "suspension_type"],
             }
             ```
+        Can take several minutes depending on the query.
     """
     import cellxgene_census
     with cellxgene_census.open_soma(census_version=census_version) as census:
