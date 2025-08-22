@@ -1,4 +1,4 @@
-# Bilinear Multi-Layer Perceptrons (BMLP) for Hierarchical Single-Cell Analysis
+# Bilinear Multi-Layer Perceptrons (BMLPs) for Hierarchical Single-Cell Analysis
 
 A novel machine learning approach for discovering interpretable gene regulatory hierarchies in single-cell RNA-seq data through bilinear neural networks and graph Laplacian eigendecomposition.
 
@@ -71,8 +71,8 @@ pip install -e ".[dev]"
 ```python
 import scanpy as sc
 import numpy as np
-from datasets import myeloid_dev_freq
-from bmlp import ScBMLPRegressor, Config
+from scripts.datasets import myeloid_dev_freq
+from scripts.bmlp import ScBMLPRegressor, Config
 
 # Load data with frequency decomposition
 adata, train_dataset, val_dataset, test_dataset = myeloid_dev_freq(
@@ -112,10 +112,10 @@ for freq_idx in range(5):
 
 ### Core Components
 
-- **`bmlp.py`**: Bilinear MLP implementations with abstract base classes
-- **`datasets.py`**: Data loading utilities for single-cell datasets
-- **`utils.py`**: Graph construction and frequency calculation utilities
-- **`myeloid_dev_hierarchical.ipynb`**: Complete analysis pipeline with biological validation
+- **`scripts/bmlp.py`**: Bilinear MLP implementations with abstract base classes
+- **`scripts/datasets.py`**: Data loading utilities for single-cell datasets  
+- **`scripts/utils.py`**: Graph construction and frequency calculation utilities
+- **`notebooks/myeloid_dev_hierarchical.ipynb`**: Complete analysis pipeline with biological validation
 
 ### Key Classes
 

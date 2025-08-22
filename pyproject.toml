@@ -9,9 +9,9 @@ description = "Bilinear Multi-Layer Perceptrons for Hierarchical Single-Cell Ana
 readme = "README.md"
 authors = ["Kamal Maher <kamal.m.maher@gmail.com>"]
 license = "MIT"
-homepage = "https://github.com/tdooms/bilinear-decomposition"
-repository = "https://github.com/tdooms/bilinear-decomposition"
-documentation = "https://github.com/tdooms/bilinear-decomposition"
+homepage = "https://github.com/kmaherx/bmlp"
+repository = "https://github.com/kmaherx/bmlp"
+documentation = "https://github.com/kmaherx/bmlp"
 keywords = ["bioinformatics", "single-cell", "machine-learning", "gene-expression"]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -23,7 +23,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-packages = [{include = "bmlp"}, {include = "datasets"}, {include = "utils"}]
+packages = [{include = "scripts"}, {include = "notebooks"}]
 
 [tool.poetry.dependencies]
 python = ">=3.9"
