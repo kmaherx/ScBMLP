@@ -25,6 +25,14 @@ def _to_sparse_tensor(X: np.ndarray, device: str) -> torch.Tensor:
         return dense_tensor.to_sparse().to(device)
 
 
+def _encode_labels(labels: np.ndarray) -> Tuple[np.ndarray, dict]:
+    """Convert object array labels to integers and return mapping."""
+    unique_labels = np.unique(labels)
+    label_to_int = {label: i for i, label in enumerate(unique_labels)}
+    encoded_labels = np.array([label_to_int[label] for label in labels])
+    return encoded_labels, label_to_int
+
+
 class ClassDataset(Dataset):
     """PyTorch dataset for single-cell classification tasks."""
     
@@ -32,12 +40,15 @@ class ClassDataset(Dataset):
         self,
         adata: sc.AnnData,
         indices: np.ndarray,
-        label: str,
+        class_key: str,
         device: str = "cpu",
     ):
         self.adata = adata[indices].copy()
         self.X = _to_sparse_tensor(self.adata.X, device)
-        self.y = torch.tensor(self.adata.obs[label].values.astype(int)).to(device)
+        
+        labels = self.adata.obs[class_key].values
+        encoded_labels, self.label_mapping = _encode_labels(labels)
+        self.y = torch.tensor(encoded_labels, dtype=torch.long).to(device)
 
     def __len__(self) -> int:
         return self.X.shape[0]
