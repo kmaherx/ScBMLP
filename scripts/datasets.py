@@ -1,7 +1,6 @@
 from .utils import get_cell_types, get_freqs
 
-from typing import Tuple
-from dataclasses import dataclass
+from typing import Tuple, Collection
 
 from torch.utils.data import Dataset
 import numpy as np
@@ -9,14 +8,14 @@ import scanpy as sc
 import torch
 
 
-class CellTypeDataset(Dataset):
+class ClassDataset(Dataset):
     """PyTorch dataset for single-cell classification tasks."""
     def __init__(
         self,
-        adata,
+        adata: sc.AnnData,
         indices: np.ndarray,
         label: str,
-        device: str = "cpu"
+        device: str = "cpu",
     ):
         self.adata = adata[indices].copy()
         self.X = torch.tensor(self.adata.X, dtype=torch.float32).to(device)
@@ -29,14 +28,14 @@ class CellTypeDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 
-class CellFreqDataset(Dataset):
+class FreqDataset(Dataset):
     """PyTorch dataset for single-cell frequency regression tasks."""
     def __init__(
         self,
-        adata,
+        adata: sc.AnnData,
         indices: np.ndarray,
         freq_key: str = "X_freq",
-        device: str = "cpu"
+        device: str = "cpu",
     ):
         self.adata = adata[indices].copy()
         self.X = torch.tensor(self.adata.X, dtype=torch.float32).to(device)
@@ -50,9 +49,9 @@ class CellFreqDataset(Dataset):
 
 
 def get_split_idxs(
-    adata,
+    adata: sc.AnnData,
     val_split: float = 0.15,
-    random_state: int = 0
+    random_state: int = 0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Split dataset indices into train/validation/test sets."""
     n = adata.shape[0]
@@ -69,38 +68,38 @@ def get_split_idxs(
 
 
 def get_type_datasets(
-    adata,
+    adata: sc.AnnData,
     train_indices: np.ndarray,
     val_indices: np.ndarray,
     test_indices: np.ndarray,
-    label: str,
-    device: str = "cpu"
-) -> Tuple[CellTypeDataset, CellTypeDataset, CellTypeDataset]:
+    class_key: str,
+    device: str = "cpu",
+) -> Tuple[ClassDataset, ClassDataset, ClassDataset]:
     """Create train/val/test datasets for cell type classification."""
-    train_dataset = CellTypeDataset(adata, train_indices, label, device=device)
-    val_dataset = CellTypeDataset(adata, val_indices, label, device=device)
-    test_dataset = CellTypeDataset(adata, test_indices, label, device=device)
+    train_dataset = ClassDataset(adata, train_indices, class_key, device=device)
+    val_dataset = ClassDataset(adata, val_indices, class_key, device=device)
+    test_dataset = ClassDataset(adata, test_indices, class_key, device=device)
 
     return train_dataset, val_dataset, test_dataset
 
 
 def get_freq_datasets(
-    adata,
+    adata: sc.AnnData,
     train_indices: np.ndarray,
     val_indices: np.ndarray,
     test_indices: np.ndarray,
     freq_key: str = "X_freq",
-    device: str = "cpu"
-) -> Tuple[CellFreqDataset, CellFreqDataset, CellFreqDataset]:
+    device: str = "cpu",
+) -> Tuple[FreqDataset, FreqDataset, FreqDataset]:
     """Create train/val/test datasets for frequency regression."""
-    train_dataset = CellFreqDataset(adata, train_indices, freq_key, device=device)
-    val_dataset = CellFreqDataset(adata, val_indices, freq_key, device=device)
-    test_dataset = CellFreqDataset(adata, test_indices, freq_key, device=device)
+    train_dataset = FreqDataset(adata, train_indices, freq_key, device=device)
+    val_dataset = FreqDataset(adata, val_indices, freq_key, device=device)
+    test_dataset = FreqDataset(adata, test_indices, freq_key, device=device)
 
     return train_dataset, val_dataset, test_dataset
 
 
-def simulate(
+def simulate_classes(
     n_cells: int = 1000,
     n_genes: int = 100,
     n_cell_types: int = 5,
@@ -108,7 +107,8 @@ def simulate(
     val_split: float = 0.15,
     random_state: int = 0,
     device: str = "cpu",
-):
+    class_key: str = "cell_type",
+) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
     """Generate simulated single-cell data with Gaussian blobs for classification."""
     adata = sc.datasets.blobs(
         n_observations=n_cells,
@@ -117,26 +117,26 @@ def simulate(
         cluster_std=cell_type_std,
         random_state=random_state,
     )
-    adata.obs["cell_type"] = adata.obs["blobs"]
-    label = "cell_type"
+    adata.obs[class_key] = adata.obs["blobs"]
     del adata.obs["blobs"]
 
     train_indices, val_indices, test_indices = get_split_idxs(
-        adata, val_split=val_split, random_state=random_state
+        adata, val_split=val_split, random_state=random_state,
     )
     train_dataset, val_dataset, test_dataset = get_type_datasets(
-        adata, train_indices, val_indices, test_indices, label, device=device
+        adata, train_indices, val_indices, test_indices, class_key, device=device,
     )
 
     return adata, train_dataset, val_dataset, test_dataset
 
 
-def myeloid_dev_type(
+def myeloid_classes(
     n_cell_types: int = 3,
     val_split: float = 0.15,
     random_state: int = 0,
     device: str = "cpu",
-):
+    class_key: str = "cell_type",
+) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
     """Load and prepare Paul15 myeloid development data for cell type classification."""
     adata = sc.datasets.paul15()
 
@@ -144,26 +144,26 @@ def myeloid_dev_type(
     sc.pp.log1p(adata)
     sc.pp.scale(adata)
 
-    get_cell_types(adata, n_comps=50, n_cell_types=n_cell_types)
-    label = "cell_type"
+    get_cell_types(adata, n_comps=50, n_cell_types=n_cell_types, cell_type_key=class_key)
 
     train_indices, val_indices, test_indices = get_split_idxs(
-        adata, val_split=val_split, random_state=random_state
+        adata, val_split=val_split, random_state=random_state,
     )
     train_dataset, val_dataset, test_dataset = get_type_datasets(
-        adata, train_indices, val_indices, test_indices, label, device=device
+        adata, train_indices, val_indices, test_indices, class_key, device=device,
     )
 
     return adata, train_dataset, val_dataset, test_dataset
 
 
-def myeloid_dev_freq(
+def myeloid_freqs(
     k_neighbors: int = 15,
     n_freq_comps: int = 10,
     val_split: float = 0.15,
     random_state: int = 0,
     device: str = "cpu",
-):
+    freq_key: str = "X_freq",
+) -> Tuple[sc.AnnData, FreqDataset, FreqDataset, FreqDataset]:
     """
     Myeloid development dataset with Laplacian eigenvector-based frequency targets.
     Each cell is represented by Laplacian eigenvectors on the k-NN graph, providing
@@ -178,61 +178,67 @@ def myeloid_dev_freq(
     get_freqs(adata, k=k_neighbors, n_freqs=n_freq_comps, device=device)
 
     train_indices, val_indices, test_indices = get_split_idxs(
-        adata, val_split=val_split, random_state=random_state
+        adata, val_split=val_split, random_state=random_state,
     )
     train_dataset, val_dataset, test_dataset = get_freq_datasets(
-        adata, train_indices, val_indices, test_indices, freq_key="X_freq", device=device
+        adata, train_indices, val_indices, test_indices, freq_key=freq_key, device=device,
     )
 
     return adata, train_dataset, val_dataset, test_dataset
 
 
-def census_sex_type(
-    n_cells: int = 10000,
+def census_classes(
+    census_config: dict,
+    class_key: str,
     val_split: float = 0.15,
     random_state: int = 0,
     device: str = "cpu",
-):
-    """Load Census data for sex classification - minimal implementation."""
+    census_version: str = "2025-01-30",
+) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
+    """
+    Wrapper for retrieving and formatting a CELLxGENE Census query.
+
+    Arguments:
+        census_config: Configuration dictionary for the census query.
+            - organism: Organism to filter the census data.
+            - var_value_filter: Filter for desired genes their properties.
+            - obs_value_filter: Filter for desired cells by their properties.
+            - var_column_names: Specify desired gene metadata.
+            - obs_column_names: Specify desired cell metadata.
+        class_key: Key for the target values for classification (e.g. "cell_type").
+        census_version: Version of the census data to use.
+
+        Example for sex classification of hepatocytes:
+            ```python
+            census_config = {
+                "organism" : "Homo sapiens",
+                "var_value_filter" : "feature_type in ['protein_coding']",
+                "obs_value_filter" : "sex in ['male', 'female'] and cell_type == 'hepatocyte' and disease == 'normal'",
+                "var_column_names" : ["feature_id", "feature_name", "feature_type", "feature_length"],
+                "obs_column_names" : ["cell_type", "sex", "assay", "suspension_type"],
+            }
+            ```
+    """
     import cellxgene_census
-    import pandas as pd
-    print("Connecting to Census...")
-    with cellxgene_census.open_soma() as census:
-        with census["census_data"]["homo_sapiens"] as human:
-            # Get cells with sex labels
-            obs_df = human.obs.read(
-                value_filter="sex in ['male', 'female'] and is_primary_data == True",
-                column_names=["soma_joinid", "sex"]
-            ).concat().to_pandas()
+    with cellxgene_census.open_soma(census_version=census_version) as census:
+        adata = cellxgene_census.get_anndata(
+            census=census,
+            organism=census_config["organism"],
+            var_value_filter=census_config["var_value_filter"],
+            obs_value_filter=census_config["obs_value_filter"],
+            var_column_names=census_config["var_column_names"],
+            obs_column_names=census_config["obs_column_names"],
+        )
 
-            # Balance and subsample
-            male = obs_df[obs_df['sex'] == 'male'].sample(n_cells//2, random_state=random_state)
-            female = obs_df[obs_df['sex'] == 'female'].sample(n_cells//2, random_state=random_state)
-            selected = pd.concat([male, female])
+        sc.pp.normalize_total(adata)
+        sc.pp.log1p(adata)
 
-            # Get top genes
-            var_df = human.var.read(column_names=["soma_joinid", "feature_name"]).concat().to_pandas().head(n_genes)
+        train_indices, val_indices, test_indices = get_split_idxs(
+            adata, val_split=val_split, random_state=random_state,
+        )
+        train_dataset, val_dataset, test_dataset = get_type_datasets(
+            adata, train_indices, val_indices, test_indices, class_key, device=device,
+        )
 
-            # Get expression
-            X = human.X["raw"].read(
-                obs_joinids=selected['soma_joinid'].values,
-                var_joinids=var_df['soma_joinid'].values
-            ).coos().concat().to_scipy_csr()
-
-            # Create AnnData
-            adata = sc.AnnData(X=X, obs=selected.set_index('soma_joinid'), var=var_df.set_index('soma_joinid'))
-            adata.var_names = adata.var['feature_name']
-
-    sc.pp.normalize_total(adata)
-    sc.pp.log1p(adata)
-    sc.pp.scale(adata)
+        return adata, train_dataset, val_dataset, test_dataset
     
-    label = "sex"
-    train_indices, val_indices, test_indices = get_split_idxs(
-        adata, val_split=val_split, random_state=random_state
-    )
-    train_dataset, val_dataset, test_dataset = get_type_datasets(
-        adata, train_indices, val_indices, test_indices, label, device=device
-    )
-
-    return adata, train_dataset, val_dataset, test_dataset

@@ -2,26 +2,28 @@ from typing import Tuple
 
 import numpy as np
 import torch
+import scanpy as sc
 from sklearn.cluster import KMeans
 
 
 def get_cell_types(
-    adata,
+    adata: sc.AnnData,
     n_comps: int = 50,
-    n_cell_types: int = 3
+    n_cell_types: int = 3,
+    cell_type_key: str = "cell_type",
 ) -> None:
-    """Perform PCA-based cell type clustering on single-cell data."""
+    """Perform simple, PCA-based cell type clustering on single-cell data."""
     _, V = np.linalg.eigh(adata.X.T @ adata.X)
     adata.obsm["X_pca"] = adata.X @ V[:, ::-1][:, :n_comps]
 
     clf = KMeans(n_clusters=n_cell_types, random_state=0)
-    adata.obs["cell_type"] = clf.fit_predict(adata.obsm["X_pca"]).astype(str)
+    adata.obs[cell_type_key] = clf.fit_predict(adata.obsm["X_pca"]).astype(str)
 
 
 def calculate_knn_adjacency(
     X: torch.Tensor,
     k: int = 10,
-    symmetric: bool = True
+    symmetric: bool = True,
 ) -> torch.Tensor:
     """Calculate k-nearest neighbor indices for each cell based on cosine similarity."""
     n_cells = X.shape[0]
@@ -33,10 +35,10 @@ def calculate_knn_adjacency(
 
 
 def get_freqs(
-    adata,
+    adata: sc.AnnData,
     k: int = 15,
     n_freqs: int = 50,
-    device: str = "cpu"
+    device: str = "cpu",
 ) -> None:
     """Compute Laplacian eigenvector frequencies for hierarchical cell representation."""
     X_tensor = torch.tensor(adata.X, device=device, dtype=torch.float32)

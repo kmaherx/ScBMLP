@@ -97,3 +97,7 @@ plots/
 *.npy
 *.npz
 *.mat
+
+# Copilot prompts
+github/
+.prompt.md
