@@ -185,3 +185,54 @@ def myeloid_dev_freq(
     )
 
     return adata, train_dataset, val_dataset, test_dataset
+
+
+def census_sex_type(
+    n_cells: int = 10000,
+    val_split: float = 0.15,
+    random_state: int = 0,
+    device: str = "cpu",
+):
+    """Load Census data for sex classification - minimal implementation."""
+    import cellxgene_census
+    import pandas as pd
+    print("Connecting to Census...")
+    with cellxgene_census.open_soma() as census:
+        with census["census_data"]["homo_sapiens"] as human:
+            # Get cells with sex labels
+            obs_df = human.obs.read(
+                value_filter="sex in ['male', 'female'] and is_primary_data == True",
+                column_names=["soma_joinid", "sex"]
+            ).concat().to_pandas()
+
+            # Balance and subsample
+            male = obs_df[obs_df['sex'] == 'male'].sample(n_cells//2, random_state=random_state)
+            female = obs_df[obs_df['sex'] == 'female'].sample(n_cells//2, random_state=random_state)
+            selected = pd.concat([male, female])
+
+            # Get top genes
+            var_df = human.var.read(column_names=["soma_joinid", "feature_name"]).concat().to_pandas().head(n_genes)
+
+            # Get expression
+            X = human.X["raw"].read(
+                obs_joinids=selected['soma_joinid'].values,
+                var_joinids=var_df['soma_joinid'].values
+            ).coos().concat().to_scipy_csr()
+
+            # Create AnnData
+            adata = sc.AnnData(X=X, obs=selected.set_index('soma_joinid'), var=var_df.set_index('soma_joinid'))
+            adata.var_names = adata.var['feature_name']
+
+    sc.pp.normalize_total(adata)
+    sc.pp.log1p(adata)
+    sc.pp.scale(adata)
+    
+    label = "sex"
+    train_indices, val_indices, test_indices = get_split_idxs(
+        adata, val_split=val_split, random_state=random_state
+    )
+    train_dataset, val_dataset, test_dataset = get_type_datasets(
+        adata, train_indices, val_indices, test_indices, label, device=device
+    )
+
+    return adata, train_dataset, val_dataset, test_dataset
