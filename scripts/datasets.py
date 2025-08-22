@@ -214,10 +214,10 @@ def census_classes(
     Arguments:
         census_config: Configuration dictionary for the census query.
             - organism: Organism to filter the census data.
-            - var_value_filter: Filter for desired genes their properties.
-            - obs_value_filter: Filter for desired cells by their properties.
-            - var_column_names: Specify desired gene metadata.
-            - obs_column_names: Specify desired cell metadata.
+            - var_value_filter: Filter for desired genes based on their metadata.
+            - obs_value_filter: Filter for desired cells based on their metadata.
+            - var_column_names: Specify the gene metadata you want stored in the returned AnnData.
+            - obs_column_names: Specify the cell metadata you want stored in the returned AnnData.
         class_key: Key for the target values for classification (e.g. "cell_type").
         census_version: Version of the census data to use.
 
