@@ -1,6 +1,6 @@
 # ScBMLP: Bilinear Multi-Layer Perceptrons for Single-Cell Analysis
 
-A novel machine learning approach for discovering interpretable gene regulatory hierarchies in single-cell RNA-seq data through bilinear neural networks and graph Laplacian eigendecomposition.
+A novel machine learning approach for discovering interpretable gene regulatory patterns in single-cell RNA-seq data through bilinear neural networks and graph Laplacian eigendecomposition.
 
 ## 🧬 Concept
 
@@ -9,24 +9,24 @@ Traditional single-cell analysis methods rely on correlation-based approaches to
 ### Core Innovation
 
 - **Bilinear Interactions**: Instead of linear transformations, we use bilinear operations that model pairwise gene interactions: `(Wx) ⊙ (Vx) → B ∈ ℝ^(g×g)`
-- **Frequency Hierarchy**: We decompose the cell-cell similarity graph using Laplacian eigenvectors, creating natural frequency scales that correspond to biological hierarchies
+- **Graph-Based Decomposition**: We decompose the cell-cell similarity graph using Laplacian eigenvectors, creating natural frequency scales that correspond to cellular organization
 - **Interpretable Weights**: The learned bilinear matrices encode gene regulatory modules at different transcriptional scales
 
 ### Biological Intuition
 
-Each output dimension represents a level of phenotypic hierarchy:
-- **Low frequencies (0-1)**: Broad developmental processes (cell fate, differentiation)
-- **Middle frequencies (2-3)**: Lineage-specific pathways (myeloid vs erythroid)  
-- **High frequencies (4+)**: Fine-grained cell type markers (neutrophil vs monocyte)
+Each output dimension represents a different scale of cellular organization:
+- **Low frequencies (0-1)**: Global cellular patterns and major cell fate decisions
+- **Middle frequencies (2-3)**: Lineage-specific programs and differentiation pathways  
+- **High frequencies (4+)**: Fine-grained cell type markers and specialized functions
 
-The interaction matrices `B[freq]` represent gene modules sufficient to distinguish between branches at each hierarchical level.
+The interaction matrices `B[freq]` represent gene modules that capture regulatory relationships at each scale.
 
 ## 🚀 Key Benefits
 
 1. **Non-linear & Interpretable**: Captures complex gene regulatory logic while maintaining interpretability
-2. **Hierarchical by Design**: Natural multi-scale analysis of cellular phenotypes
+2. **Multi-scale Analysis**: Natural decomposition of cellular organization across multiple scales
 3. **Beyond Correlations**: Discovers gene interactions that correlation methods miss
-4. **Biologically Grounded**: Frequency decomposition aligns with developmental timescales
+4. **Biologically Grounded**: Frequency decomposition aligns with cellular organization principles
 
 ## 📊 Validation Results
 
@@ -34,36 +34,49 @@ Our approach shows significant advantages over traditional correlation-based met
 
 - **Low Jaccard Similarity (0.118)**: Demonstrates that bilinear interactions capture fundamentally different biology than simple correlations
 - **GO Term Enrichment**: Gene modules show strong enrichment for relevant biological processes at each frequency
-- **Hierarchical Organization**: Clear progression from broad developmental programs to specific cell type markers
+- **Multi-scale Organization**: Clear progression from global cellular patterns to specific cell type markers
 
 ## 🛠 Installation
 
 ### Prerequisites
 
 - Python 3.9
+- Recommended: Create a virtual environment first
 
 ### Quick Install (Recommended)
 
-Install directly from GitHub:
+Install directly from GitHub using pip:
 
 ```bash
 pip install git+https://github.com/kmaherx/bmlp.git
 ```
 
-### Virtual Environment (Recommended)
+### Virtual Environment Setup (Recommended)
+
+For a clean installation, create a virtual environment first:
 
 ```bash
-python -m venv bmlp-env
-source bmlp-env/bin/activate  # on Windows: bmlp-env\Scripts\activate
+python -m venv scbmlp-env
+source scbmlp-env/bin/activate  # on Windows: scbmlp-env\Scripts\activate
 pip install git+https://github.com/kmaherx/bmlp.git
 ```
 
 ### Development Installation
 
+For development or if you want to modify the code:
+
 ```bash
 git clone https://github.com/kmaherx/bmlp.git
 cd bmlp
 pip install -e ".[dev]"
+```
+
+### Using uv (Alternative Package Manager)
+
+If you prefer using `uv` for faster package management:
+
+```bash
+uv pip install git+https://github.com/kmaherx/bmlp.git
 ```
 
 ## 🧪 Quick Start
@@ -115,7 +128,7 @@ for freq_idx in range(5):
 - **`scripts/bmlp.py`**: Bilinear MLP implementations with abstract base classes
 - **`scripts/datasets.py`**: Data loading utilities for single-cell datasets  
 - **`scripts/utils.py`**: Graph construction and frequency calculation utilities
-- **`notebooks/myeloid_dev_hierarchical.ipynb`**: Complete analysis pipeline with biological validation
+- **`notebooks/myeloid_dev.ipynb`**: Complete analysis pipeline with biological validation
 
 ### Key Classes
 
@@ -128,9 +141,9 @@ for freq_idx in range(5):
 
 This method has been validated on:
 
-- **Myeloid Development**: Paul et al. 2015 dataset showing clear developmental hierarchy
+- **Myeloid Development**: Paul et al. 2015 dataset showing clear developmental patterns
 - **Gene Regulatory Networks**: Discovery of biologically coherent gene modules
-- **Cell State Transitions**: Capturing dynamic cellular processes
+- **Cell State Analysis**: Capturing cellular organization and transitions
 
 ### Potential Extensions
 

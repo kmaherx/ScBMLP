@@ -5,13 +5,13 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "ScBMLP"
 version = "0.1.0"
-description = "Bilinear Multi-Layer Perceptrons for Hierarchical Single-Cell Analysis"
+description = "Bilinear Multi-Layer Perceptrons for Single-Cell Analysis"
 readme = "README.md"
 authors = ["Kamal Maher <kamal.m.maher@gmail.com>"]
 license = "MIT"
-homepage = "https://github.com/kmaherx/bmlp"
-repository = "https://github.com/kmaherx/bmlp"
-documentation = "https://github.com/kmaherx/bmlp"
+homepage = "https://github.com/kmaherx/ScBMLP"
+repository = "https://github.com/kmaherx/ScBMLP"
+documentation = "https://github.com/kmaherx/ScBMLP"
 keywords = ["bioinformatics", "single-cell", "machine-learning", "gene-expression"]
 classifiers = [
     "Development Status :: 3 - Alpha",
