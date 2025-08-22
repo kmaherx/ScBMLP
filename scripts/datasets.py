@@ -1,4 +1,4 @@
-from utils import get_cell_types, get_freqs
+from .utils import get_cell_types, get_freqs
 
 from typing import Tuple
 from dataclasses import dataclass

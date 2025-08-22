@@ -40,7 +40,7 @@ Our approach shows significant advantages over traditional correlation-based met
 
 ### Prerequisites
 
-- Python ≥ 3.9
+- Python 3.9
 
 ### Quick Install (Recommended)
 
