@@ -28,7 +28,7 @@ def _encode_labels(labels: np.ndarray) -> Tuple[np.ndarray, dict]:
 
 class ClassDataset(Dataset):
     """PyTorch dataset for single-cell classification tasks."""
-    
+
     def __init__(
         self,
         adata: sc.AnnData,
@@ -38,7 +38,7 @@ class ClassDataset(Dataset):
     ):
         self.adata = adata[indices].copy()
         self.X = _to_dense_tensor(self.adata.X, device)
-        
+
         labels = self.adata.obs[class_key].values
         encoded_labels, self.label_mapping = _encode_labels(labels)
         self.y = torch.tensor(encoded_labels, dtype=torch.long).to(device)
@@ -118,15 +118,15 @@ def get_freq_datasets(
     return train_dataset, val_dataset, test_dataset
 
 
-def simulate_classes(
+def simulation_classes(
     n_cells: int = 1000,
     n_genes: int = 100,
     n_cell_types: int = 5,
     cell_type_std: float = 1.0,
+    class_key: str = "cell_type",
     val_split: float = 0.15,
     random_state: int = 0,
     device: str = "cpu",
-    class_key: str = "cell_type",
 ) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
     """Generate simulated single-cell data with Gaussian blobs."""
     adata = sc.datasets.blobs(
@@ -151,11 +151,11 @@ def simulate_classes(
 
 def myeloid_classes(
     n_cell_types: int = 3,
+    class_key: str = "cell_type",
     val_split: float = 0.15,
     normalize: bool = True,
     random_state: int = 0,
     device: str = "cpu",
-    class_key: str = "cell_type",
 ) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
     """Paul15 myeloid development data for cell type classification."""
     adata = sc.datasets.paul15()
@@ -180,11 +180,11 @@ def myeloid_classes(
 def myeloid_freqs(
     k_neighbors: int = 15,
     n_freq_comps: int = 10,
+    freq_key: str = "X_freq",
     val_split: float = 0.15,
     normalize: bool = True,
     random_state: int = 0,
     device: str = "cpu",
-    freq_key: str = "X_freq",
 ) -> Tuple[sc.AnnData, FreqDataset, FreqDataset, FreqDataset]:
     """Myeloid development with Laplacian eigenvector frequency targets."""
     adata = sc.datasets.paul15()
