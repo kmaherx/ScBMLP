@@ -9,20 +9,13 @@ import torch
 import scipy.sparse as sp
 
 
-def _to_sparse_tensor(X: np.ndarray, device: str) -> torch.Tensor:
-    """Convert dense/sparse matrix to sparse tensor."""
+def _to_dense_tensor(X: np.ndarray, device: str) -> torch.Tensor:
+    """Convert dense/sparse matrix to dense tensor."""
     if sp.issparse(X):
-        X_csr = X.tocsr()
-        coo = X_csr.tocoo()
-        indices = torch.stack([
-            torch.from_numpy(coo.row).long(),
-            torch.from_numpy(coo.col).long(),
-        ])
-        values = torch.from_numpy(coo.data).float()
-        return torch.sparse_coo_tensor(indices, values, coo.shape, dtype=torch.float32).to(device)
+        X_dense = X.toarray()
     else:
-        dense_tensor = torch.tensor(X, dtype=torch.float32)
-        return dense_tensor.to_sparse().to(device)
+        X_dense = X
+    return torch.tensor(X_dense, dtype=torch.float32).to(device)
 
 
 def _encode_labels(labels: np.ndarray) -> Tuple[np.ndarray, dict]:
@@ -44,7 +37,7 @@ class ClassDataset(Dataset):
         device: str = "cpu",
     ):
         self.adata = adata[indices].copy()
-        self.X = _to_sparse_tensor(self.adata.X, device)
+        self.X = _to_dense_tensor(self.adata.X, device)
         
         labels = self.adata.obs[class_key].values
         encoded_labels, self.label_mapping = _encode_labels(labels)
@@ -54,8 +47,7 @@ class ClassDataset(Dataset):
         return self.X.shape[0]
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        x_row = self.X[idx].to_dense() if self.X.is_sparse else self.X[idx]
-        return x_row, self.y[idx]
+        return self.X[idx], self.y[idx]
 
 
 class FreqDataset(Dataset):
@@ -69,15 +61,14 @@ class FreqDataset(Dataset):
         device: str = "cpu",
     ):
         self.adata = adata[indices].copy()
-        self.X = _to_sparse_tensor(self.adata.X, device)
+        self.X = _to_dense_tensor(self.adata.X, device)
         self.y = torch.tensor(self.adata.obsm[freq_key], dtype=torch.float32).to(device)
 
     def __len__(self) -> int:
         return self.X.shape[0]
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        x_row = self.X[idx].to_dense() if self.X.is_sparse else self.X[idx]
-        return x_row, self.y[idx]
+        return self.X[idx], self.y[idx]
 
 
 def get_split_idxs(
