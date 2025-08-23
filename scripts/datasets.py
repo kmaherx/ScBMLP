@@ -32,11 +32,10 @@ class ClassifierDataset(Dataset):
     def __init__(
         self,
         adata: sc.AnnData,
-        indices: np.ndarray,
         class_key: str,
         device: str = "cpu",
     ):
-        self.adata = adata[indices].copy()
+        self.adata = adata.copy()
         self.X = _to_dense_tensor(self.adata.X, device)
 
         labels = self.adata.obs[class_key].values
@@ -56,11 +55,10 @@ class RegressorDataset(Dataset):
     def __init__(
         self,
         adata: sc.AnnData,
-        indices: np.ndarray,
         freq_key: str = "X_freq",
         device: str = "cpu",
     ):
-        self.adata = adata[indices].copy()
+        self.adata = adata.copy()
         self.X = _to_dense_tensor(self.adata.X, device)
         self.y = torch.tensor(self.adata.obsm[freq_key], dtype=torch.float32).to(device)
 
@@ -98,9 +96,9 @@ def get_classification_datasets(
     class_key: str,
     device: str = "cpu",
 ) -> Tuple[ClassifierDataset, ClassifierDataset, ClassifierDataset]:
-    train_dataset = ClassifierDataset(adata, train_indices, class_key, device=device)
-    val_dataset = ClassifierDataset(adata, val_indices, class_key, device=device)
-    test_dataset = ClassifierDataset(adata, test_indices, class_key, device=device)
+    train_dataset = ClassifierDataset(adata[train_indices], class_key, device=device)
+    val_dataset = ClassifierDataset(adata[val_indices], class_key, device=device)
+    test_dataset = ClassifierDataset(adata[test_indices], class_key, device=device)
     return train_dataset, val_dataset, test_dataset
 
 
@@ -112,9 +110,9 @@ def get_regression_datasets(
     freq_key: str = "X_freq",
     device: str = "cpu",
 ) -> Tuple[RegressorDataset, RegressorDataset, RegressorDataset]:
-    train_dataset = RegressorDataset(adata, train_indices, freq_key, device=device)
-    val_dataset = RegressorDataset(adata, val_indices, freq_key, device=device)
-    test_dataset = RegressorDataset(adata, test_indices, freq_key, device=device)
+    train_dataset = RegressorDataset(adata[train_indices], freq_key, device=device)
+    val_dataset = RegressorDataset(adata[val_indices], freq_key, device=device)
+    test_dataset = RegressorDataset(adata[test_indices], freq_key, device=device)
     return train_dataset, val_dataset, test_dataset
 
 
