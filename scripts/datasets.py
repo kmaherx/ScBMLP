@@ -90,7 +90,7 @@ def get_split_idxs(
     return train_indices, val_indices, test_indices
 
 
-def get_type_datasets(
+def get_class_datasets(
     adata: sc.AnnData,
     train_indices: np.ndarray,
     val_indices: np.ndarray,
@@ -142,7 +142,7 @@ def simulation_classes(
     train_indices, val_indices, test_indices = get_split_idxs(
         adata, val_split=val_split, random_state=random_state,
     )
-    train_dataset, val_dataset, test_dataset = get_type_datasets(
+    train_dataset, val_dataset, test_dataset = get_class_datasets(
         adata, train_indices, val_indices, test_indices, class_key, device=device,
     )
 
@@ -170,7 +170,7 @@ def myeloid_classes(
     train_indices, val_indices, test_indices = get_split_idxs(
         adata, val_split=val_split, random_state=random_state,
     )
-    train_dataset, val_dataset, test_dataset = get_type_datasets(
+    train_dataset, val_dataset, test_dataset = get_class_datasets(
         adata, train_indices, val_indices, test_indices, class_key, device=device,
     )
 
@@ -259,7 +259,7 @@ def census_classes(
         train_indices, val_indices, test_indices = get_split_idxs(
             adata, val_split=val_split, random_state=random_state,
         )
-        train_dataset, val_dataset, test_dataset = get_type_datasets(
+        train_dataset, val_dataset, test_dataset = get_class_datasets(
             adata, train_indices, val_indices, test_indices, class_key, device=device,
         )
 
