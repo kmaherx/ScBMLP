@@ -90,12 +90,15 @@ def get_split_idxs(
 
 def get_classification_datasets(
     adata: sc.AnnData,
-    train_indices: np.ndarray,
-    val_indices: np.ndarray,
-    test_indices: np.ndarray,
     class_key: str,
+    val_split: float = 0.15,
+    random_state: int = 0,
     device: str = "cpu",
 ) -> Tuple[ClassifierDataset, ClassifierDataset, ClassifierDataset]:
+    """Create train/validation/test classification datasets with automatic splitting."""
+    train_indices, val_indices, test_indices = get_split_idxs(
+        adata, val_split=val_split, random_state=random_state,
+    )
     train_dataset = ClassifierDataset(adata[train_indices], class_key, device=device)
     val_dataset = ClassifierDataset(adata[val_indices], class_key, device=device)
     test_dataset = ClassifierDataset(adata[test_indices], class_key, device=device)
@@ -104,12 +107,15 @@ def get_classification_datasets(
 
 def get_regression_datasets(
     adata: sc.AnnData,
-    train_indices: np.ndarray,
-    val_indices: np.ndarray,
-    test_indices: np.ndarray,
     freq_key: str = "X_freq",
+    val_split: float = 0.15,
+    random_state: int = 0,
     device: str = "cpu",
 ) -> Tuple[RegressorDataset, RegressorDataset, RegressorDataset]:
+    """Create train/validation/test regression datasets with automatic splitting."""
+    train_indices, val_indices, test_indices = get_split_idxs(
+        adata, val_split=val_split, random_state=random_state,
+    )
     train_dataset = RegressorDataset(adata[train_indices], freq_key, device=device)
     val_dataset = RegressorDataset(adata[val_indices], freq_key, device=device)
     test_dataset = RegressorDataset(adata[test_indices], freq_key, device=device)
@@ -134,11 +140,8 @@ def myeloid_classes(
 
     get_cell_types(adata, n_comps=50, n_cell_types=n_cell_types, cell_type_key=class_key)
 
-    train_indices, val_indices, test_indices = get_split_idxs(
-        adata, val_split=val_split, random_state=random_state,
-    )
     train_dataset, val_dataset, test_dataset = get_classification_datasets(
-        adata, train_indices, val_indices, test_indices, class_key, device=device,
+        adata, class_key, val_split=val_split, random_state=random_state, device=device,
     )
 
     return adata, train_dataset, val_dataset, test_dataset
@@ -163,11 +166,8 @@ def myeloid_freqs(
 
     get_freqs(adata, k=k_neighbors, n_freqs=n_freq_comps, device=device)
 
-    train_indices, val_indices, test_indices = get_split_idxs(
-        adata, val_split=val_split, random_state=random_state,
-    )
     train_dataset, val_dataset, test_dataset = get_regression_datasets(
-        adata, train_indices, val_indices, test_indices, freq_key=freq_key, device=device,
+        adata, freq_key=freq_key, val_split=val_split, random_state=random_state, device=device,
     )
 
     return adata, train_dataset, val_dataset, test_dataset
@@ -223,11 +223,8 @@ def census_classes(
             sc.pp.log1p(adata)
             sc.pp.scale(adata)
 
-        train_indices, val_indices, test_indices = get_split_idxs(
-            adata, val_split=val_split, random_state=random_state,
-        )
         train_dataset, val_dataset, test_dataset = get_classification_datasets(
-            adata, train_indices, val_indices, test_indices, class_key, device=device,
+            adata, class_key, val_split=val_split, random_state=random_state, device=device,
         )
 
         return adata, train_dataset, val_dataset, test_dataset
