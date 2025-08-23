@@ -26,7 +26,7 @@ def _encode_labels(labels: np.ndarray) -> Tuple[np.ndarray, dict]:
     return encoded_labels, label_to_int
 
 
-class ClassDataset(Dataset):
+class ClassifierDataset(Dataset):
     """PyTorch dataset for single-cell classification tasks."""
 
     def __init__(
@@ -50,7 +50,7 @@ class ClassDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 
-class FreqDataset(Dataset):
+class RegressorDataset(Dataset):
     """PyTorch dataset for single-cell frequency regression tasks."""
     
     def __init__(
@@ -97,10 +97,10 @@ def get_class_datasets(
     test_indices: np.ndarray,
     class_key: str,
     device: str = "cpu",
-) -> Tuple[ClassDataset, ClassDataset, ClassDataset]:
-    train_dataset = ClassDataset(adata, train_indices, class_key, device=device)
-    val_dataset = ClassDataset(adata, val_indices, class_key, device=device)
-    test_dataset = ClassDataset(adata, test_indices, class_key, device=device)
+) -> Tuple[ClassifierDataset, ClassifierDataset, ClassifierDataset]:
+    train_dataset = ClassifierDataset(adata, train_indices, class_key, device=device)
+    val_dataset = ClassifierDataset(adata, val_indices, class_key, device=device)
+    test_dataset = ClassifierDataset(adata, test_indices, class_key, device=device)
     return train_dataset, val_dataset, test_dataset
 
 
@@ -111,42 +111,11 @@ def get_freq_datasets(
     test_indices: np.ndarray,
     freq_key: str = "X_freq",
     device: str = "cpu",
-) -> Tuple[FreqDataset, FreqDataset, FreqDataset]:
-    train_dataset = FreqDataset(adata, train_indices, freq_key, device=device)
-    val_dataset = FreqDataset(adata, val_indices, freq_key, device=device)
-    test_dataset = FreqDataset(adata, test_indices, freq_key, device=device)
+) -> Tuple[RegressorDataset, RegressorDataset, RegressorDataset]:
+    train_dataset = RegressorDataset(adata, train_indices, freq_key, device=device)
+    val_dataset = RegressorDataset(adata, val_indices, freq_key, device=device)
+    test_dataset = RegressorDataset(adata, test_indices, freq_key, device=device)
     return train_dataset, val_dataset, test_dataset
-
-
-def simulation_classes(
-    n_cells: int = 1000,
-    n_genes: int = 100,
-    n_cell_types: int = 5,
-    cell_type_std: float = 1.0,
-    class_key: str = "cell_type",
-    val_split: float = 0.15,
-    random_state: int = 0,
-    device: str = "cpu",
-) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
-    """Generate simulated single-cell data with Gaussian blobs."""
-    adata = sc.datasets.blobs(
-        n_observations=n_cells,
-        n_variables=n_genes,
-        n_centers=n_cell_types,
-        cluster_std=cell_type_std,
-        random_state=random_state,
-    )
-    adata.obs[class_key] = adata.obs["blobs"]
-    del adata.obs["blobs"]
-
-    train_indices, val_indices, test_indices = get_split_idxs(
-        adata, val_split=val_split, random_state=random_state,
-    )
-    train_dataset, val_dataset, test_dataset = get_class_datasets(
-        adata, train_indices, val_indices, test_indices, class_key, device=device,
-    )
-
-    return adata, train_dataset, val_dataset, test_dataset
 
 
 def myeloid_classes(
@@ -156,7 +125,7 @@ def myeloid_classes(
     normalize: bool = True,
     random_state: int = 0,
     device: str = "cpu",
-) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
+) -> Tuple[sc.AnnData, ClassifierDataset, ClassifierDataset, ClassifierDataset]:
     """Paul15 myeloid development data for cell type classification."""
     adata = sc.datasets.paul15()
 
@@ -185,7 +154,7 @@ def myeloid_freqs(
     normalize: bool = True,
     random_state: int = 0,
     device: str = "cpu",
-) -> Tuple[sc.AnnData, FreqDataset, FreqDataset, FreqDataset]:
+) -> Tuple[sc.AnnData, RegressorDataset, RegressorDataset, RegressorDataset]:
     """Myeloid development with Laplacian eigenvector frequency targets."""
     adata = sc.datasets.paul15()
 
@@ -214,7 +183,7 @@ def census_classes(
     random_state: int = 0,
     device: str = "cpu",
     census_version: str = "2025-01-30",
-) -> Tuple[sc.AnnData, ClassDataset, ClassDataset, ClassDataset]:
+) -> Tuple[sc.AnnData, ClassifierDataset, ClassifierDataset, ClassifierDataset]:
     """
     Wrapper for retrieving and formatting a CELLxGENE Census query.
 
