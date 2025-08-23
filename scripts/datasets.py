@@ -152,6 +152,7 @@ def simulate_classes(
 def myeloid_classes(
     n_cell_types: int = 3,
     val_split: float = 0.15,
+    normalize: bool = True,
     random_state: int = 0,
     device: str = "cpu",
     class_key: str = "cell_type",
@@ -159,9 +160,10 @@ def myeloid_classes(
     """Paul15 myeloid development data for cell type classification."""
     adata = sc.datasets.paul15()
 
-    sc.pp.normalize_total(adata)
-    sc.pp.log1p(adata)
-    sc.pp.scale(adata)
+    if normalize:
+        sc.pp.normalize_total(adata)
+        sc.pp.log1p(adata)
+        sc.pp.scale(adata)
 
     get_cell_types(adata, n_comps=50, n_cell_types=n_cell_types, cell_type_key=class_key)
 
@@ -179,6 +181,7 @@ def myeloid_freqs(
     k_neighbors: int = 15,
     n_freq_comps: int = 10,
     val_split: float = 0.15,
+    normalize: bool = True,
     random_state: int = 0,
     device: str = "cpu",
     freq_key: str = "X_freq",
@@ -186,10 +189,11 @@ def myeloid_freqs(
     """Myeloid development with Laplacian eigenvector frequency targets."""
     adata = sc.datasets.paul15()
 
-    sc.pp.normalize_total(adata)
-    sc.pp.log1p(adata)
-    sc.pp.scale(adata)
-    
+    if normalize:
+        sc.pp.normalize_total(adata)
+        sc.pp.log1p(adata)
+        sc.pp.scale(adata)
+
     get_freqs(adata, k=k_neighbors, n_freqs=n_freq_comps, device=device)
 
     train_indices, val_indices, test_indices = get_split_idxs(
@@ -206,6 +210,7 @@ def census_classes(
     census_config: dict,
     class_key: str,
     val_split: float = 0.15,
+    normalize: bool = True,
     random_state: int = 0,
     device: str = "cpu",
     census_version: str = "2025-01-30",
@@ -246,8 +251,10 @@ def census_classes(
             obs_column_names=census_config["obs_column_names"],
         )
 
-        sc.pp.normalize_total(adata)
-        sc.pp.log1p(adata)
+        if normalize:
+            sc.pp.normalize_total(adata)
+            sc.pp.log1p(adata)
+            sc.pp.scale(adata)
 
         train_indices, val_indices, test_indices = get_split_idxs(
             adata, val_split=val_split, random_state=random_state,
