@@ -51,7 +51,7 @@ class ClassifierDataset(Dataset):
 
 
 class RegressorDataset(Dataset):
-    """PyTorch dataset for single-cell frequency regression tasks."""
+    """PyTorch dataset for single-cell regression tasks."""
     
     def __init__(
         self,
@@ -90,7 +90,7 @@ def get_split_idxs(
     return train_indices, val_indices, test_indices
 
 
-def get_class_datasets(
+def get_classification_datasets(
     adata: sc.AnnData,
     train_indices: np.ndarray,
     val_indices: np.ndarray,
@@ -104,7 +104,7 @@ def get_class_datasets(
     return train_dataset, val_dataset, test_dataset
 
 
-def get_freq_datasets(
+def get_regression_datasets(
     adata: sc.AnnData,
     train_indices: np.ndarray,
     val_indices: np.ndarray,
@@ -139,7 +139,7 @@ def myeloid_classes(
     train_indices, val_indices, test_indices = get_split_idxs(
         adata, val_split=val_split, random_state=random_state,
     )
-    train_dataset, val_dataset, test_dataset = get_class_datasets(
+    train_dataset, val_dataset, test_dataset = get_classification_datasets(
         adata, train_indices, val_indices, test_indices, class_key, device=device,
     )
 
@@ -168,7 +168,7 @@ def myeloid_freqs(
     train_indices, val_indices, test_indices = get_split_idxs(
         adata, val_split=val_split, random_state=random_state,
     )
-    train_dataset, val_dataset, test_dataset = get_freq_datasets(
+    train_dataset, val_dataset, test_dataset = get_regression_datasets(
         adata, train_indices, val_indices, test_indices, freq_key=freq_key, device=device,
     )
 
@@ -228,7 +228,7 @@ def census_classes(
         train_indices, val_indices, test_indices = get_split_idxs(
             adata, val_split=val_split, random_state=random_state,
         )
-        train_dataset, val_dataset, test_dataset = get_class_datasets(
+        train_dataset, val_dataset, test_dataset = get_classification_datasets(
             adata, train_indices, val_indices, test_indices, class_key, device=device,
         )
 
