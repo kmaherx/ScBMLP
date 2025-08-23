@@ -45,6 +45,9 @@ jupyter = ">=1.0.0"
 ipykernel = ">=6.0.0"
 ipywidgets = ">=7.0.0"
 
+[tool.poetry.extras]
+census = ["cellxgene-census>=1.0.0"]
+
 [tool.poetry.group.dev.dependencies]
 pytest = ">=6.2.0"
 black = ">=21.0.0"
