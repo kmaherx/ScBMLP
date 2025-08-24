@@ -9,13 +9,12 @@ import torch
 import scipy.sparse as sp
 
 
-def _to_dense_tensor(X: np.ndarray, device: str) -> torch.Tensor:
-    """Convert dense/sparse matrix to dense tensor."""
+def _to_dense_numpy(X: np.ndarray) -> np.ndarray:
+    """Convert dense/sparse matrix to dense numpy array."""
     if sp.issparse(X):
-        X_dense = X.toarray()
+        return X.toarray()
     else:
-        X_dense = X
-    return torch.tensor(X_dense, dtype=torch.float32).to(device)
+        return X
 
 
 def _encode_labels(labels: np.ndarray) -> Tuple[np.ndarray, dict]:
@@ -27,46 +26,73 @@ def _encode_labels(labels: np.ndarray) -> Tuple[np.ndarray, dict]:
 
 
 class ClassifierDataset(Dataset):
-    """PyTorch dataset for single-cell classification tasks."""
+    """PyTorch dataset for single-cell classification tasks with memory-efficient indexing."""
 
     def __init__(
         self,
-        adata: sc.AnnData,
-        class_key: str,
+        X: np.ndarray,  # Pre-densified shared data
+        labels: np.ndarray,  # Pre-processed labels
+        indices: np.ndarray,
+        label_mapping: dict,
         device: str = "cpu",
     ):
-        self.adata = adata.copy()
-        self.X = _to_dense_tensor(self.adata.X, device)
-
-        labels = self.adata.obs[class_key].values
-        encoded_labels, self.label_mapping = _encode_labels(labels)
-        self.y = torch.tensor(encoded_labels, dtype=torch.long).to(device)
+        self.X = X  # Shared dense matrix (always on CPU)
+        self.device = device  # Target device for tensors
+        self.indices = indices
+        self.label_mapping = label_mapping
+        
+        # Only keep labels for our subset (always on CPU)
+        self.y = labels[indices]
 
     def __len__(self) -> int:
-        return self.X.shape[0]
+        return len(self.indices)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.X[idx], self.y[idx]
+        # Map dataset index to original data index
+        actual_idx = self.indices[idx]
+        
+        # Convert to tensors and transfer to target device only when requested
+        x = torch.tensor(self.X[actual_idx], dtype=torch.float32, device=self.device)
+        y = torch.tensor(self.y[idx], dtype=torch.long, device=self.device)
+        return x, y
+    
+    def set_device(self, device: str):
+        """Change the target device for tensor creation."""
+        self.device = device
 
 
 class RegressorDataset(Dataset):
-    """PyTorch dataset for single-cell regression tasks."""
+    """PyTorch dataset for single-cell regression tasks with memory-efficient indexing."""
     
     def __init__(
         self,
-        adata: sc.AnnData,
-        freq_key: str = "X_freq",
+        X: np.ndarray,  # Pre-densified shared data
+        y_data: np.ndarray,  # Pre-processed target data
+        indices: np.ndarray,
         device: str = "cpu",
     ):
-        self.adata = adata.copy()
-        self.X = _to_dense_tensor(self.adata.X, device)
-        self.y = torch.tensor(self.adata.obsm[freq_key], dtype=torch.float32).to(device)
+        self.X = X  # Shared dense matrix (always on CPU)
+        self.device = device  # Target device for tensors
+        self.indices = indices
+        
+        # Only keep targets for our subset (always on CPU)
+        self.y = y_data[indices]
 
     def __len__(self) -> int:
-        return self.X.shape[0]
+        return len(self.indices)
 
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.X[idx], self.y[idx]
+        # Map dataset index to original data index
+        actual_idx = self.indices[idx]
+        
+        # Convert to tensors and transfer to target device only when requested
+        x = torch.tensor(self.X[actual_idx], dtype=torch.float32, device=self.device)
+        y = torch.tensor(self.y[idx], dtype=torch.float32, device=self.device)
+        return x, y
+    
+    def set_device(self, device: str):
+        """Change the target device for tensor creation."""
+        self.device = device
 
 
 def get_split_idxs(
@@ -95,13 +121,33 @@ def get_classification_datasets(
     random_state: int = 0,
     device: str = "cpu",
 ) -> Tuple[ClassifierDataset, ClassifierDataset, ClassifierDataset]:
-    """Create train/validation/test classification datasets with automatic splitting."""
+    """Create train/validation/test classification datasets with memory-efficient splitting."""
+    print("Creating dataset splits...")
     train_indices, val_indices, test_indices = get_split_idxs(
         adata, val_split=val_split, random_state=random_state,
     )
-    train_dataset = ClassifierDataset(adata[train_indices], class_key, device=device)
-    val_dataset = ClassifierDataset(adata[val_indices], class_key, device=device)
-    test_dataset = ClassifierDataset(adata[test_indices], class_key, device=device)
+    
+    print("Densifying data matrix (this may take a moment)...")
+    # Densify ONCE and share across all datasets
+    X_dense = _to_dense_numpy(adata.X)
+    
+    print("Encoding labels...")
+    # Process labels ONCE
+    all_labels = adata.obs[class_key].values
+    encoded_labels, label_mapping = _encode_labels(all_labels)
+    
+    print("Creating dataset objects...")
+    # Create datasets that share the same dense matrix
+    train_dataset = ClassifierDataset(X_dense, encoded_labels, train_indices, label_mapping, device)
+    val_dataset = ClassifierDataset(X_dense, encoded_labels, val_indices, label_mapping, device)
+    test_dataset = ClassifierDataset(X_dense, encoded_labels, test_indices, label_mapping, device)
+    
+    # Store adata reference for compatibility with existing code
+    train_dataset.adata = adata
+    val_dataset.adata = adata
+    test_dataset.adata = adata
+    
+    print(f"Datasets created - Train: {len(train_dataset):,}, Val: {len(val_dataset):,}, Test: {len(test_dataset):,}")
     return train_dataset, val_dataset, test_dataset
 
 
@@ -112,13 +158,29 @@ def get_regression_datasets(
     random_state: int = 0,
     device: str = "cpu",
 ) -> Tuple[RegressorDataset, RegressorDataset, RegressorDataset]:
-    """Create train/validation/test regression datasets with automatic splitting."""
+    """Create train/validation/test regression datasets with memory-efficient splitting."""
+    print("Creating dataset splits...")
     train_indices, val_indices, test_indices = get_split_idxs(
         adata, val_split=val_split, random_state=random_state,
     )
-    train_dataset = RegressorDataset(adata[train_indices], target_key, device=device)
-    val_dataset = RegressorDataset(adata[val_indices], target_key, device=device)
-    test_dataset = RegressorDataset(adata[test_indices], target_key, device=device)
+    
+    print("Densifying data matrix (this may take a moment)...")
+    # Densify ONCE and share across all datasets
+    X_dense = _to_dense_numpy(adata.X)
+    y_data = adata.obsm[target_key]
+    
+    print("Creating dataset objects...")
+    # Create datasets that share the same dense matrix
+    train_dataset = RegressorDataset(X_dense, y_data, train_indices, device)
+    val_dataset = RegressorDataset(X_dense, y_data, val_indices, device)
+    test_dataset = RegressorDataset(X_dense, y_data, test_indices, device)
+    
+    # Store adata reference for compatibility
+    train_dataset.adata = adata
+    val_dataset.adata = adata
+    test_dataset.adata = adata
+    
+    print(f"Datasets created - Train: {len(train_dataset):,}, Val: {len(val_dataset):,}, Test: {len(test_dataset):,}")
     return train_dataset, val_dataset, test_dataset
 
 

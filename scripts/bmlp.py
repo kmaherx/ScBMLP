@@ -76,6 +76,7 @@ class BaseBMLP(nn.Module, ABC):
         scheduler = CosineAnnealingLR(optimizer, T_max=self.cfg.n_epochs)
 
         train_loader = DataLoader(train, batch_size=self.cfg.batch_size, shuffle=True, drop_last=True)
+        val_loader = DataLoader(val, batch_size=self.cfg.batch_size, shuffle=False, drop_last=False)
 
         train_losses = []
         train_metrics = []
@@ -85,6 +86,10 @@ class BaseBMLP(nn.Module, ABC):
         pbar = tqdm(range(self.cfg.n_epochs), desc=f"Training for {self.cfg.n_epochs} epochs")
 
         for _ in pbar:
+            epoch_train_loss = 0.0
+            epoch_train_metric = 0.0
+            num_train_batches = 0
+            
             for data in train_loader:
                 x, y = data
                 loss, metrics = self.train().step(x, y)
@@ -92,20 +97,37 @@ class BaseBMLP(nn.Module, ABC):
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                
+                epoch_train_loss += loss.item()
+                epoch_train_metric += metrics
+                num_train_batches += 1
             
             scheduler.step()
 
-            train_losses.append(loss.item())
-            train_metrics.append(metrics)
+            avg_train_loss = epoch_train_loss / num_train_batches
+            avg_train_metric = epoch_train_metric / num_train_batches
+            train_losses.append(avg_train_loss)
+            train_metrics.append(avg_train_metric)
 
             with torch.no_grad():
-                x, y = val[:]
-                loss, metrics = self.eval().step(x, y)
-                val_losses.append(loss.item())
-                val_metrics.append(metrics)
+                epoch_val_loss = 0.0
+                epoch_val_metric = 0.0
+                num_val_batches = 0
+                
+                for data in val_loader:
+                    x, y = data
+                    loss, metrics = self.eval().step(x, y)
+                    epoch_val_loss += loss.item()
+                    epoch_val_metric += metrics
+                    num_val_batches += 1
+                
+                avg_val_loss = epoch_val_loss / num_val_batches
+                avg_val_metric = epoch_val_metric / num_val_batches
+                val_losses.append(avg_val_loss)
+                val_metrics.append(avg_val_metric)
 
-            self._update_progress_bar(pbar, train_losses[-1], train_metrics[-1], 
-                                    val_losses[-1], val_metrics[-1])
+            self._update_progress_bar(pbar, avg_train_loss, avg_train_metric, 
+                                    avg_val_loss, avg_val_metric)
 
         torch.set_grad_enabled(False)
         return train_losses, val_losses
