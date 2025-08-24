@@ -107,7 +107,7 @@ def get_classification_datasets(
 
 def get_regression_datasets(
     adata: sc.AnnData,
-    freq_key: str = "X_freq",
+    target_key: str,
     val_split: float = 0.15,
     random_state: int = 0,
     device: str = "cpu",
@@ -116,9 +116,9 @@ def get_regression_datasets(
     train_indices, val_indices, test_indices = get_split_idxs(
         adata, val_split=val_split, random_state=random_state,
     )
-    train_dataset = RegressorDataset(adata[train_indices], freq_key, device=device)
-    val_dataset = RegressorDataset(adata[val_indices], freq_key, device=device)
-    test_dataset = RegressorDataset(adata[test_indices], freq_key, device=device)
+    train_dataset = RegressorDataset(adata[train_indices], target_key, device=device)
+    val_dataset = RegressorDataset(adata[val_indices], target_key, device=device)
+    test_dataset = RegressorDataset(adata[test_indices], target_key, device=device)
     return train_dataset, val_dataset, test_dataset
 
 
