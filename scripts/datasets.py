@@ -126,16 +126,16 @@ def get_classification_datasets(
     train_indices, val_indices, test_indices = get_split_idxs(
         adata, val_split=val_split, random_state=random_state,
     )
-    
+
     print("Densifying data matrix (this may take a moment)...")
     # Densify ONCE and share across all datasets
     X_dense = _to_dense_numpy(adata.X)
-    
+
     print("Encoding labels...")
     # Process labels ONCE
     all_labels = adata.obs[class_key].values
     encoded_labels, label_mapping = _encode_labels(all_labels)
-    
+
     print("Creating dataset objects...")
     # Create datasets that share the same dense matrix
     train_dataset = ClassifierDataset(X_dense, encoded_labels, train_indices, label_mapping, device)

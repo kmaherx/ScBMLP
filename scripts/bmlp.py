@@ -19,6 +19,8 @@ class Config:
     n_epochs: int = 100
     batch_size: int = 32
     lr: float = 0.001
+    dropout_rate: float = 0.0  # Dropout rate for regularization
+    weight_decay: float = 1e-4  # L2 regularization strength
     seed: int = 0
     device: str = "cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -33,11 +35,16 @@ class BaseBMLP(nn.Module, ABC):
         self.left = nn.Linear(self.cfg.d_input, self.cfg.d_hidden, bias=self.cfg.bias)
         self.right = nn.Linear(self.cfg.d_input, self.cfg.d_hidden, bias=self.cfg.bias)
         self.head = nn.Linear(self.cfg.d_hidden, self.cfg.d_output, bias=self.cfg.bias)
+        
+        # Add dropout for regularization
+        self.dropout = nn.Dropout(p=self.cfg.dropout_rate)
 
         self.to(self.cfg.device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.head(self.left(x) * self.right(x))
+        # Apply dropout to the hidden representation
+        hidden = self.dropout(self.left(x) * self.right(x))
+        return self.head(hidden)
 
     @abstractmethod
     def compute_loss(
@@ -72,7 +79,7 @@ class BaseBMLP(nn.Module, ABC):
         """Shared training loop"""
         torch.set_grad_enabled(True)
 
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.cfg.lr, weight_decay=1e-4)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.cfg.lr, weight_decay=self.cfg.weight_decay)
         scheduler = CosineAnnealingLR(optimizer, T_max=self.cfg.n_epochs)
 
         train_loader = DataLoader(train, batch_size=self.cfg.batch_size, shuffle=True, drop_last=True)
