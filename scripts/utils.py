@@ -23,7 +23,6 @@ def get_cell_types(
 def calculate_knn_adjacency(
     X: torch.Tensor,
     k: int = 10,
-    symmetric: bool = True,
 ) -> torch.Tensor:
     """Calculate k-nearest neighbor indices for each cell based on cosine similarity."""
     n_cells = X.shape[0]
@@ -40,7 +39,7 @@ def get_freqs(
     n_freqs: int = 50,
     device: str = "cpu",
 ) -> None:
-    """Compute Laplacian eigenvector frequencies for hierarchical cell representation."""
+    """Compute Laplacian eigenvectors (transcriptional frequencies) for hierarchical cell representations."""
     X_tensor = torch.tensor(adata.X, device=device, dtype=torch.float32)
     n_cells = X_tensor.shape[0]
 
