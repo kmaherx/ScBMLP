@@ -1,6 +1,7 @@
-from typing import Tuple, Collection
+from typing import Tuple, Collection, Optional
 
 import numpy as np
+from sklearn.model_selection import train_test_split
 import scanpy as sc
 import scipy.sparse as sp
 import torch
@@ -99,47 +100,77 @@ class RegressorDataset(Dataset):
 
 def get_split_idxs(
     adata: sc.AnnData,
+    train_split: float = 0.7,
     val_split: float = 0.15,
     random_state: int = 0,
+    stratify_labels: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Split dataset indices into train/validation/test sets."""
-    np.random.seed(random_state)
-    n = adata.shape[0]
-    n_train = int(0.7 * n)
-    n_val = int(val_split * n)
-    n_test = n - n_train - n_val
+    """Return (train_idx, val_idx, test_idx) using two train_test_split calls.
 
-    indices = np.random.permutation(n)
-    train_indices = indices[:n_train]
-    val_indices = indices[n_train:n_train + n_val]
-    test_indices = indices[n_train + n_val:]
-    return train_indices, val_indices, test_indices
+    Contract:
+        train fraction = train_split
+        val fraction   = val_split
+        test fraction  = 1 - train_split - val_split
+        Requires: 0 < train_split < 1, 0 <= val_split < 1, train_split + val_split < 1.
+        Stratifies if stratify_labels provided (classification use case).
+    """
+    if not (0 < train_split < 1 and 0 <= val_split < 1):
+        raise ValueError("train_split must be in (0,1); val_split in [0,1).")
+    test_split = 1.0 - train_split - val_split
+    if test_split <= 0:
+        raise ValueError("train_split + val_split must be < 1.")
+
+    n = adata.shape[0]
+    indices = np.arange(n)
+    strat_all = stratify_labels if stratify_labels is not None else None
+
+    train_idx, temp_idx, strat_train, strat_temp = train_test_split(
+        indices,
+        strat_all,
+        test_size=(val_split + test_split),
+        random_state=random_state,
+        stratify=strat_all,
+    )
+
+    rel_test = test_split / (val_split + test_split)
+    val_idx, test_idx = train_test_split(
+        temp_idx,
+        test_size=rel_test,
+        random_state=random_state + 1,
+        stratify=strat_temp if stratify_labels is not None else None,
+    )
+
+    return np.array(train_idx), np.array(val_idx), np.array(test_idx)
 
 
 def get_classification_datasets(
     adata: sc.AnnData,
     class_key: str,
+    train_split: float = 0.7,
     val_split: float = 0.15,
     random_state: int = 0,
     device: str = "cpu",
 ) -> Tuple[ClassifierDataset, ClassifierDataset, ClassifierDataset]:
-    """Create train/validation/test classification datasets with memory-efficient splitting."""
-    print("Creating dataset splits...")
+    """Create train/validation/test classification datasets.
+
+    Args:
+        train_split: Fraction for training set (default 0.7).
+        val_split: Fraction for validation set (default 0.15). Test = 1 - train - val.
+    """
+    print("Creating dataset splits (stratified)...")
+    all_labels = adata.obs[class_key].values
     train_indices, val_indices, test_indices = get_split_idxs(
-        adata, val_split=val_split, random_state=random_state,
+        adata, train_split=train_split, val_split=val_split, random_state=random_state, stratify_labels=all_labels,
     )
 
+    # Densify ONCE and share across all datasets
     print("Densifying data matrix (this may take a moment)...")
-    # densify ONCE and share across all datasets
     X_dense = _to_dense_numpy(adata.X)
 
     print("Encoding labels...")
-    # process labels ONCE
-    all_labels = adata.obs[class_key].values
     encoded_labels, label_mapping = _encode_labels(all_labels)
 
     print("Creating dataset objects...")
-    # create datasets that share the same dense matrix
     train_dataset = ClassifierDataset(X_dense, encoded_labels, train_indices, label_mapping, device)
     val_dataset = ClassifierDataset(X_dense, encoded_labels, val_indices, label_mapping, device)
     test_dataset = ClassifierDataset(X_dense, encoded_labels, test_indices, label_mapping, device)
@@ -154,23 +185,27 @@ def get_classification_datasets(
 def get_regression_datasets(
     adata: sc.AnnData,
     target_key: str,
+    train_split: float = 0.7,
     val_split: float = 0.15,
     random_state: int = 0,
     device: str = "cpu",
 ) -> Tuple[RegressorDataset, RegressorDataset, RegressorDataset]:
-    """Create train/validation/test regression datasets with memory-efficient splitting."""
-    print("Creating dataset splits...")
+    """Create train/validation/test regression datasets.
+
+    Args:
+        train_split: Fraction for training set (default 0.7).
+        val_split: Fraction for validation set (default 0.15). Test = 1 - train - val.
+    """
+    print("Creating dataset splits (shuffle)...")
     train_indices, val_indices, test_indices = get_split_idxs(
-        adata, val_split=val_split, random_state=random_state,
+        adata, train_split=train_split, val_split=val_split, random_state=random_state,
     )
 
     print("Densifying data matrix (this may take a moment)...")
-    # densify ONCE and share across all datasets
     X_dense = _to_dense_numpy(adata.X)
     y_data = adata.obsm[target_key]
 
     print("Creating dataset objects...")
-    # create datasets that share the same dense matrix
     train_dataset = RegressorDataset(X_dense, y_data, train_indices, device)
     val_dataset = RegressorDataset(X_dense, y_data, val_indices, device)
     test_dataset = RegressorDataset(X_dense, y_data, test_indices, device)
@@ -185,6 +220,7 @@ def get_regression_datasets(
 def myeloid_classes(
     n_cell_types: int = 3,
     class_key: str = "cell_type",
+    train_split: float = 0.7,
     val_split: float = 0.15,
     normalize: bool = True,
     random_state: int = 0,
@@ -208,6 +244,7 @@ def myeloid_classes(
     train_dataset, val_dataset, test_dataset = get_classification_datasets(
         adata,
         class_key,
+    train_split=train_split,
         val_split=val_split,
         random_state=random_state,
         device=device,
@@ -220,6 +257,7 @@ def myeloid_freqs(
     k_neighbors: int = 15,
     n_freq_comps: int = 10,
     freq_key: str = "X_freq",
+    train_split: float = 0.7,
     val_split: float = 0.15,
     normalize: bool = True,
     random_state: int = 0,
@@ -238,6 +276,7 @@ def myeloid_freqs(
     train_dataset, val_dataset, test_dataset = get_regression_datasets(
         adata,
         target_key=freq_key,
+    train_split=train_split,
         val_split=val_split,
         random_state=random_state,
         device=device,
@@ -249,6 +288,7 @@ def myeloid_freqs(
 def census_classes(
     census_config: dict,
     class_key: str,
+    train_split: float = 0.7,
     val_split: float = 0.15,
     normalize: bool = True,
     random_state: int = 0,
@@ -297,7 +337,7 @@ def census_classes(
             sc.pp.scale(adata)
 
         train_dataset, val_dataset, test_dataset = get_classification_datasets(
-            adata, class_key, val_split=val_split, random_state=random_state, device=device,
+            adata, class_key, train_split=train_split, val_split=val_split, random_state=random_state, device=device,
         )
 
         return adata, train_dataset, val_dataset, test_dataset
